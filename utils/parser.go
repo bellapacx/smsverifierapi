@@ -19,44 +19,69 @@ type ParsedSMS struct {
 }
 
 func ParseBankSMS(sms string) (*ParsedSMS, error) {
-	// Robust regex
-	re := regexp.MustCompile(`Account\s+(\d+\*+\d+).*?Credited with ETB\s+([\d,]+\.?\d*)\s+from\s+(.*?),\s+on\s+(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2})\s+with Ref No\s+(\w+)\s+Your Current Balance is ETB\s+([\d,]+\.?\d*)`)
+	parsed := &ParsedSMS{}
 
-	matches := re.FindStringSubmatch(sms)
-	if len(matches) != 7 {
-		log.Println("SMS parsing failed:", sms)
+	// 1️⃣ Account
+	accountRe := regexp.MustCompile(`Account (\d+\*+\d+)`)
+	if m := accountRe.FindStringSubmatch(sms); len(m) > 1 {
+		parsed.Account = m[1]
+	} else {
+		log.Println("Failed to parse Account")
 		return nil, nil
 	}
 
-	amount, err := strconv.ParseFloat(strings.ReplaceAll(matches[2], ",", ""), 64)
-	if err != nil {
-		log.Println("Failed to parse amount:", matches[2])
-		return nil, err
+	// 2️⃣ Amount
+	amountRe := regexp.MustCompile(`Credited with ETB ([\d,]+\.?\d*)`)
+	if m := amountRe.FindStringSubmatch(sms); len(m) > 1 {
+		amount, _ := strconv.ParseFloat(strings.ReplaceAll(m[1], ",", ""), 64)
+		parsed.Amount = amount
+	} else {
+		log.Println("Failed to parse Amount")
+		return nil, nil
 	}
 
-	balance, err := strconv.ParseFloat(strings.ReplaceAll(matches[6], ",", ""), 64)
-	if err != nil {
-		log.Println("Failed to parse balance:", matches[6])
-		return nil, err
+	// 3️⃣ Sender Name
+	senderRe := regexp.MustCompile(`from (.*?), on`)
+	if m := senderRe.FindStringSubmatch(sms); len(m) > 1 {
+		parsed.SenderName = strings.TrimSpace(m[1])
+	} else {
+		log.Println("Failed to parse Sender")
+		return nil, nil
 	}
 
-	date, err := time.Parse("02/01/2006 15:04:05", matches[4])
-	if err != nil {
-		log.Println("Failed to parse date:", matches[4])
-		return nil, err
+	// 4️⃣ Date (with 'at' between date and time)
+	dateRe := regexp.MustCompile(`on (\d{2}/\d{2}/\d{4}) at (\d{2}:\d{2}:\d{2})`)
+	if m := dateRe.FindStringSubmatch(sms); len(m) > 2 {
+		datetime := m[1] + " " + m[2]
+		date, _ := time.Parse("02/01/2006 15:04:05", datetime)
+		parsed.Date = date
+	} else {
+		log.Println("Failed to parse Date")
+		return nil, nil
 	}
 
-	// Extract URL if present
+	// 5️⃣ Transaction ID
+	txRe := regexp.MustCompile(`Ref No (\w+)`)
+	if m := txRe.FindStringSubmatch(sms); len(m) > 1 {
+		parsed.TransactionID = m[1]
+	} else {
+		log.Println("Failed to parse Transaction ID")
+		return nil, nil
+	}
+
+	// 6️⃣ Balance
+	balanceRe := regexp.MustCompile(`Your Current Balance is ETB ([\d,]+\.?\d*)`)
+	if m := balanceRe.FindStringSubmatch(sms); len(m) > 1 {
+		balance, _ := strconv.ParseFloat(strings.ReplaceAll(m[1], ",", ""), 64)
+		parsed.Balance = balance
+	} else {
+		log.Println("Failed to parse Balance")
+		return nil, nil
+	}
+
+	// 7️⃣ URL
 	urlRe := regexp.MustCompile(`https?://\S+`)
-	urlMatch := urlRe.FindString(sms)
+	parsed.URL = urlRe.FindString(sms)
 
-	return &ParsedSMS{
-		Account:       matches[1],
-		Amount:        amount,
-		SenderName:    matches[3],
-		Date:          date,
-		TransactionID: matches[5],
-		Balance:       balance,
-		URL:           urlMatch,
-	}, nil
+	return parsed, nil
 }
