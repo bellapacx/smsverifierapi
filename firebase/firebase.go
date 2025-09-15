@@ -19,11 +19,17 @@ func InitFirebase() {
 		log.Fatal("FIREBASE_CRED_JSON not set")
 	}
 
+	// Create config with project ID
+	config := &firebase.Config{
+		ProjectID: "supermarket-pos-c8339",
+	}
+
 	opt := option.WithCredentialsJSON([]byte(credJSON))
-	app, err := firebase.NewApp(ctx, nil, opt)
+	app, err := firebase.NewApp(ctx, config, opt)
 	if err != nil {
 		log.Fatalf("Failed to initialize Firebase: %v", err)
 	}
+
 	App = app
 	log.Println("Firebase initialized successfully")
 }
