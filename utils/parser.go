@@ -19,8 +19,8 @@ type ParsedSMS struct {
 }
 
 func ParseBankSMS(sms string) (*ParsedSMS, error) {
-	// Match account, amount, sender, date, transaction ID, balance
-	re := regexp.MustCompile(`Account (\d+\*+\d+).*?Credited with ETB ([\d,\.]+) from (.*?), on (\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}) with Ref No (\w+) Your Current Balance is ETB ([\d,\.]+)`)
+	// Robust regex
+	re := regexp.MustCompile(`Account\s+(\d+\*+\d+).*?Credited with ETB\s+([\d,]+\.?\d*)\s+from\s+(.*?),\s+on\s+(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}:\d{2})\s+with Ref No\s+(\w+)\s+Your Current Balance is ETB\s+([\d,]+\.?\d*)`)
 
 	matches := re.FindStringSubmatch(sms)
 	if len(matches) != 7 {
@@ -28,7 +28,6 @@ func ParseBankSMS(sms string) (*ParsedSMS, error) {
 		return nil, nil
 	}
 
-	// Parse numbers
 	amount, err := strconv.ParseFloat(strings.ReplaceAll(matches[2], ",", ""), 64)
 	if err != nil {
 		log.Println("Failed to parse amount:", matches[2])
@@ -47,7 +46,7 @@ func ParseBankSMS(sms string) (*ParsedSMS, error) {
 		return nil, err
 	}
 
-	// Optional: extract URL at end
+	// Extract URL if present
 	urlRe := regexp.MustCompile(`https?://\S+`)
 	urlMatch := urlRe.FindString(sms)
 
