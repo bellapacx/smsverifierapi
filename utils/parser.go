@@ -96,9 +96,14 @@ func ParseVerifySMS(sms string) (*ParsedSMS, error) {
 	parsed := &ParsedSMS{}
 
 	// 1️⃣ Transaction ID
-	txRe := regexp.MustCompile(`id=(FT\d+[A-Z]+\d)`)
+	txRe := regexp.MustCompile(`id=(FT[0-9A-Z]+)`)
 	if m := txRe.FindStringSubmatch(sms); len(m) > 1 {
-		parsed.TransactionID = m[1]
+		fullID := m[1]
+		if len(fullID) > 8 {
+			parsed.TransactionID = fullID[:len(fullID)-8] // remove last 8 digits
+		} else {
+			parsed.TransactionID = fullID
+		}
 	} else {
 		return nil, errors.New("Transaction ID not found")
 	}
