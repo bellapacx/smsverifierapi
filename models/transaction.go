@@ -17,10 +17,17 @@ type Transaction struct {
 	Status        string  `json:"status"` // pending / verified
 }
 
-// Save transaction to Firestore
+// Save saves the transaction to Firestore
 func (t *Transaction) Save() error {
 	ctx := context.Background()
-	_, err := firebase.Client.Collection("transactions").Doc(t.TransactionID).Set(ctx, t)
+	client, err := firebase.App.Firestore(ctx)
+	if err != nil {
+		log.Println("Failed to create Firestore client:", err)
+		return err
+	}
+	defer client.Close()
+
+	_, err = client.Collection("transactions").Doc(t.TransactionID).Set(ctx, t)
 	if err != nil {
 		log.Println("Failed to save transaction:", err)
 		return err
@@ -28,10 +35,16 @@ func (t *Transaction) Save() error {
 	return nil
 }
 
-// Verify transaction
+// VerifyTransaction verifies a transaction by ID and amount
 func VerifyTransaction(transactionID string, amount float64) (bool, error) {
 	ctx := context.Background()
-	doc, err := firebase.Client.Collection("transactions").Doc(transactionID).Get(ctx)
+	client, err := firebase.App.Firestore(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer client.Close()
+
+	doc, err := client.Collection("transactions").Doc(transactionID).Get(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -43,7 +56,7 @@ func VerifyTransaction(transactionID string, amount float64) (bool, error) {
 
 	if t.Status == "pending" && t.Amount == amount {
 		t.Status = "verified"
-		_, err := firebase.Client.Collection("transactions").Doc(transactionID).Set(ctx, t)
+		_, err := client.Collection("transactions").Doc(transactionID).Set(ctx, t)
 		if err != nil {
 			return false, err
 		}
