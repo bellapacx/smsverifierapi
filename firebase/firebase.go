@@ -2,8 +2,8 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"os"
 	"sms-verifier/config"
 
 	"cloud.google.com/go/firestore"
@@ -15,13 +15,20 @@ var Client *firestore.Client
 
 func InitFirebase() {
 	ctx := context.Background()
-	sa := option.WithCredentialsFile(config.FirebaseCred)
 
-	client, err := firestore.NewClient(ctx, config.FirebaseProjectID, sa)
+	// Read Firebase credentials from environment variable
+	jsonCred := os.Getenv("FIREBASE_CRED_JSON")
+	if jsonCred == "" {
+		log.Fatal("FIREBASE_CRED_JSON not set")
+	}
+
+	// Initialize Firestore with credentials from JSON string
+	opt := option.WithCredentialsJSON([]byte(jsonCred))
+	client, err := firestore.NewClient(ctx, config.FirebaseProjectID, opt)
 	if err != nil {
-		log.Fatalf("Error initializing Firestore: %v", err)
+		log.Fatalf("Failed to initialize Firestore: %v", err)
 	}
 
 	Client = client
-	fmt.Println("Firestore initialized successfully")
+	log.Println("Firestore initialized successfully")
 }
