@@ -22,12 +22,14 @@ func ReceiveSMS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	parsed, err := utils.ParseBankSMS(sms.Body)
+	// Use multi-bank parser
+	parsed, err := utils.ParseBankMulti(sms.Body)
 	if err != nil || parsed == nil {
-		http.Error(w, "Failed to parse SMS", http.StatusBadRequest)
+		http.Error(w, "Failed to parse SMS: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Save transaction
 	tx := &models.Transaction{
 		TransactionID: parsed.TransactionID,
 		Account:       parsed.Account,

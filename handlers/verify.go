@@ -18,9 +18,9 @@ func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse the SMS
-	parsed, err := utils.ParseVerifySMS(req.Body)
-	if err != nil {
+	// Use multi-bank parser
+	parsed, err := utils.ParseBankMulti(req.Body)
+	if err != nil || parsed == nil {
 		http.Error(w, "Failed to parse SMS: "+err.Error(), http.StatusBadRequest)
 		return
 	}
