@@ -18,7 +18,7 @@ type ParsedSMS struct {
 }
 
 func ParseBankSMS(sms string) (*ParsedSMS, error) {
-	re := regexp.MustCompile(`Account (\d+\*+\d+) .* Credited with ETB ([\d,\.]+) from (.+?), on (\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}) with Ref No (\w+) Your Current Balance is ETB ([\d,\.]+)`)
+	re := regexp.MustCompile(`Account (\d+\*+\d+) has been Credited with ETB ([\d,\.]+) from (.*?), on (\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}) with Ref No (\w+) Your Current Balance is ETB ([\d,\.]+)`)
 
 	matches := re.FindStringSubmatch(sms)
 	if len(matches) != 7 {
