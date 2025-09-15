@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"sms-verifier/models"
+	"sms-verifier/utils"
 )
 
 type VerifyRequest struct {
-	TransactionID string  `json:"transaction_id"`
-	Amount        float64 `json:"amount"`
+	Body string `json:"body"` // the full SMS text
 }
 
 func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
@@ -18,9 +18,17 @@ func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok, err := models.VerifyTransaction(req.TransactionID, req.Amount)
+	// Parse the SMS
+	parsed, err := utils.ParseVerifySMS(req.Body)
 	if err != nil {
-		http.Error(w, "Verification failed", http.StatusInternalServerError)
+		http.Error(w, "Failed to parse SMS: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Verify the transaction in Firestore
+	ok, err := models.VerifyTransaction(parsed.TransactionID, parsed.Amount)
+	if err != nil {
+		http.Error(w, "Verification failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
