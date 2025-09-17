@@ -8,7 +8,7 @@ import (
 )
 
 type VerifyRequest struct {
-	Body string `json:"body"` // the full SMS text
+	Body string `json:"body"` // full SMS text
 }
 
 type VerifyResponse struct {
@@ -22,6 +22,7 @@ func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 
+	// Decode request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		resp.Status = "failed"
 		resp.Message = "Invalid request: " + err.Error()
@@ -30,7 +31,7 @@ func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use multi-bank parser
+	// Parse SMS
 	parsed, err := utils.ParseBankMulti(req.Body)
 	if err != nil || parsed == nil {
 		resp.Status = "failed"
@@ -40,11 +41,11 @@ func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify the transaction in Firestore
+	// Check if transaction exists using VerifyTransaction
 	ok, err := models.VerifyTransaction(parsed.TransactionID, parsed.Amount)
 	if err != nil {
 		resp.Status = "failed"
-		resp.Message = "Verification failed: " + err.Error()
+		resp.Message = "Error checking transaction: " + err.Error()
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(resp)
 		return
@@ -52,10 +53,10 @@ func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
 
 	if ok {
 		resp.Status = "success"
-		resp.Message = "Transaction verified successfully"
+		resp.Message = "Transaction exists"
 	} else {
 		resp.Status = "failed"
-		resp.Message = "Transaction verification failed"
+		resp.Message = "Transaction not found"
 	}
 
 	w.WriteHeader(http.StatusOK)
