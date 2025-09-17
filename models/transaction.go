@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"sms-verifier/firebase"
+
+	"google.golang.org/api/iterator"
 )
 
 type Transaction struct {
@@ -64,4 +66,38 @@ func VerifyTransaction(transactionID string, amount float64) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// models/transaction.go
+func GetAllTransactions() ([]Transaction, error) {
+	var transactions []Transaction
+	ctx := context.Background()
+
+	client, err := firebase.App.Firestore(ctx)
+	if err != nil {
+		log.Println("Failed to create Firestore client:", err)
+		return nil, err
+	}
+	defer client.Close()
+
+	iter := client.Collection("transactions").Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			log.Println("Failed to iterate transactions:", err)
+			return nil, err
+		}
+
+		var tx Transaction
+		if err := doc.DataTo(&tx); err != nil {
+			log.Println("Failed to parse transaction:", err)
+			continue
+		}
+		transactions = append(transactions, tx)
+	}
+
+	return transactions, nil
 }
