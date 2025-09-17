@@ -101,3 +101,18 @@ func GetAllTransactions() ([]Transaction, error) {
 
 	return transactions, nil
 }
+func TransactionExists(transactionID string) (bool, error) {
+	ctx := context.Background()
+	client, err := firebase.App.Firestore(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer client.Close()
+
+	doc, err := client.Collection("transactions").Doc(transactionID).Get(ctx)
+	if err != nil {
+		return false, nil
+	}
+
+	return doc.Exists(), nil
+}

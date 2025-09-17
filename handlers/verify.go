@@ -41,8 +41,8 @@ func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if transaction exists using VerifyTransaction
-	ok, err := models.VerifyTransaction(parsed.TransactionID, parsed.Amount)
+	// Check if transaction exists in Firestore
+	exists, err := models.TransactionExists(parsed.TransactionID)
 	if err != nil {
 		resp.Status = "failed"
 		resp.Message = "Error checking transaction: " + err.Error()
@@ -51,7 +51,7 @@ func VerifyDeposit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ok {
+	if exists {
 		resp.Status = "success"
 		resp.Message = "Transaction exists"
 	} else {
