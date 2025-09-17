@@ -9,4 +9,5 @@ import (
 func RegisterRoutes(r *mux.Router) {
 	r.HandleFunc("/api/sms", handlers.ReceiveSMS).Methods("POST")
 	r.HandleFunc("/api/verify-deposit", handlers.VerifyDeposit).Methods("POST")
+	r.HandleFunc("/api/transactions", handlers.GetTransactions).Methods("GET")
 }
