@@ -102,38 +102,41 @@ func GetAllTransactions() ([]Transaction, error) {
 	return transactions, nil
 }
 
-func TransactionExists(transactionID string) (bool, error) {
+func TransactionExists(transactionID string) (exists bool, alreadyVerified bool, err error) {
 	ctx := context.Background()
 	client, err := firebase.App.Firestore(ctx)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	defer client.Close()
 
 	doc, err := client.Collection("transactions").Doc(transactionID).Get(ctx)
 	if err != nil {
-		// Document does not exist
-		return false, nil
+		return false, false, nil // doc not found
 	}
 
 	if !doc.Exists() {
-		return false, nil
+		return false, false, nil
 	}
 
-	// Load transaction data
 	var t Transaction
 	if err := doc.DataTo(&t); err != nil {
-		return false, err
+		return true, false, err
 	}
 
-	// If status is "pending", mark it as "verified"
 	if t.Status == "pending" {
+		// Mark as verified
 		t.Status = "verified"
 		_, err := client.Collection("transactions").Doc(transactionID).Set(ctx, t)
 		if err != nil {
-			return true, err // exists but failed to update
+			return true, false, err // exists but failed to update
 		}
+		return true, false, nil // just verified now
 	}
 
-	return true, nil
+	if t.Status == "verified" {
+		return true, true, nil
+	}
+
+	return true, false, nil
 }
