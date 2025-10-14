@@ -14,11 +14,11 @@ func (p *TelebirrDepositParser) Parse(sms string) (*ParsedSMS, error) {
 	parsed := &ParsedSMS{}
 
 	// Transaction ID
-	txRe := regexp.MustCompile(`transaction number is (\w+)`)
+	txRe := regexp.MustCompile(`(?i)transaction number is\s+([A-Z0-9]+)`)
 	if m := txRe.FindStringSubmatch(sms); len(m) > 1 {
-		parsed.TransactionID = m[1]
+		parsed.TransactionID = strings.TrimSpace(m[1])
 	} else {
-		return nil, errors.New("Transaction ID not found")
+		return nil, errors.New("transaction ID not found")
 	}
 
 	// Account (optional)
